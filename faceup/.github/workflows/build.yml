@@ -5,10 +5,11 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
 jobs:
   build:
@@ -23,33 +24,43 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      run: chmod +x gradlew || true
+
+    - name: Validate Gradle Wrapper
+      uses: gradle/actions/wrapper-validation@v4
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
+      run: ./gradlew assembleDebug --no-daemon --stacktrace --info
 
     - name: Build Release APK (Unsigned)
-      run: ./gradlew assembleRelease --no-daemon --stacktrace
+      run: ./gradlew assembleRelease --no-daemon --stacktrace --info
+
+    - name: List APK files
+      run: find app/build/outputs/apk -name "*.apk" || echo "No APK found"
 
     - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: faceup-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
+        if-no-files-found: warn
 
     - name: Upload Release APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: faceup-release-apk
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        path: app/build/outputs/apk/release/*.apk
         retention-days: 30
+        if-no-files-found: warn
 
   create-release:
     needs: build
@@ -68,17 +79,17 @@ jobs:
       with:
         name: faceup-debug-apk
         path: ./artifacts/debug
+        merge-multiple: true
 
     - name: Download Release APK
       uses: actions/download-artifact@v4
       with:
         name: faceup-release-apk
         path: ./artifacts/release
+        merge-multiple: true
 
-    - name: Rename APKs for release
-      run: |
-        mv ./artifacts/debug/app-debug.apk ./artifacts/faceup-debug.apk
-        mv ./artifacts/release/app-release-unsigned.apk ./artifacts/faceup-release.apk
+    - name: List downloaded files
+      run: ls -la ./artifacts/debug ./artifacts/release || echo "Files not found"
 
     - name: Get current date
       id: date
@@ -105,16 +116,11 @@ jobs:
           ### Installation Instructions
           1. Download the APK file of your choice
           2. On your Android device, enable "Install from unknown sources"
-             - Go to Settings → Security → Unknown Sources (or Settings → Apps → Special Access → Install unknown apps)
           3. Transfer the APK to your device or download directly
           4. Open the APK file to install
-          
-          ### Note
-          - Debug APK is recommended for testing
-          - Release APK is unsigned and may require additional steps to install
         files: |
-          ./artifacts/faceup-debug.apk
-          ./artifacts/faceup-release.apk
+          ./artifacts/debug/*
+          ./artifacts/release/*
         draft: false
         prerelease: false
         generate_release_notes: true
