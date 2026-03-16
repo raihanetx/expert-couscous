@@ -1,0 +1,122 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+    - name: Build Release APK (Unsigned)
+      run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+    - name: Upload Debug APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: faceup-debug-apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+
+    - name: Upload Release APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: faceup-release-apk
+        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        retention-days: 30
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Download Debug APK
+      uses: actions/download-artifact@v5
+      with:
+        name: faceup-debug-apk
+        path: ./artifacts/debug
+
+    - name: Download Release APK
+      uses: actions/download-artifact@v5
+      with:
+        name: faceup-release-apk
+        path: ./artifacts/release
+
+    - name: Rename APKs for release
+      run: |
+        mv ./artifacts/debug/app-debug.apk ./artifacts/faceup-debug.apk
+        mv ./artifacts/release/app-release-unsigned.apk ./artifacts/faceup-release.apk
+
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v1.0.0-${{ steps.date.outputs.date }}
+        name: FaceUp v1.0.0 - Build ${{ steps.date.outputs.date }}
+        body: |
+          ## FaceUp Video Calling App
+          
+          ### Build Information
+          - **Version:** 1.0.0
+          - **Build Date:** ${{ steps.date.outputs.date }}
+          - **Commit:** ${{ github.sha }}
+          - **Branch:** ${{ github.ref_name }}
+          
+          ### Included Files
+          - `faceup-debug.apk` - Debug build (signed with debug key)
+          - `faceup-release.apk` - Release build (unsigned)
+          
+          ### Installation Instructions
+          1. Download the APK file of your choice
+          2. On your Android device, enable "Install from unknown sources"
+             - Go to Settings → Security → Unknown Sources (or Settings → Apps → Special Access → Install unknown apps)
+          3. Transfer the APK to your device or download directly
+          4. Open the APK file to install
+          
+          ### Note
+          - Debug APK is recommended for testing
+          - Release APK is unsigned and may require additional steps to install
+        files: |
+          ./artifacts/faceup-debug.apk
+          ./artifacts/faceup-release.apk
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
