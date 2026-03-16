@@ -1,0 +1,17 @@
+{
+  "project_info": {
+    "project_number": "938407810709",
+    "project_id": "faceup-f1c71",
+    "storage_bucket": "faceup-f1c71.firebasestorage.app"
+  },
+  "client": [{
+    "client_info": {
+      "mobilesdk_app_id": "1:938407810709:android:f8bb570cb4e64e28b32d9c",
+      "android_client_info": { "package_name": "com.evenly.faceup" }
+    },
+    "oauth_client": [],
+    "api_key": [{ "current_key": "AIzaSyBffrlaWpOEAeVK9iR3yMc1oKAYqPZu46s" }],
+    "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+  }],
+  "configuration_version": "1"
+}
