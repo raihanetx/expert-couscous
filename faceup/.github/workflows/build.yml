@@ -28,33 +28,18 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
 
-    - name: Debug - List files
-      run: |
-        echo "=== Project Structure ==="
-        find . -type f -name "*.kt" | head -20
-        echo "=== Gradle files ==="
-        ls -la gradle/wrapper/
-        echo "=== gradlew ==="
-        head -5 gradlew
-        echo "=== gradle-wrapper.properties ==="
-        cat gradle/wrapper/gradle-wrapper.properties
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew || true
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
-
-    - name: Upload build log on failure
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-log
-        path: build.log
+      run: ./gradlew assembleDebug --no-daemon --stacktrace
 
     - name: Find APK files
       if: always()
-      run: find app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
+      run: find app/build -name "*.apk" 2>/dev/null || echo "No APK found"
 
     - name: Upload Debug APK
       if: success()
@@ -64,10 +49,20 @@ jobs:
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
 
+    - name: Upload build logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          app/build/reports/
+          build/reports/
+          .gradle/
+
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: success() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: success() && github.event_name == 'push'
     
     permissions:
       contents: write
@@ -87,13 +82,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.0-${{ steps.date.outputs.date }}
-        name: FaceUp v1.0.0 - Build ${{ steps.date.outputs.date }}
-        body: |
-          ## FaceUp Video Calling App
-          **Version:** 1.0.0
-          **Build Date:** ${{ steps.date.outputs.date }}
+        name: FaceUp v1.0.0
         files: ./apk/*.apk
-        draft: false
-        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
