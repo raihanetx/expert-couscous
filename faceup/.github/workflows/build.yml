@@ -9,11 +9,11 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
     - name: Checkout code
@@ -25,73 +25,61 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v4
-
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
+      run: chmod +x gradlew
 
-    - name: Validate Gradle Wrapper
-      uses: gradle/actions/wrapper-validation@v4
+    - name: Debug - List files
+      run: |
+        echo "=== Project Structure ==="
+        find . -type f -name "*.kt" | head -20
+        echo "=== Gradle files ==="
+        ls -la gradle/wrapper/
+        echo "=== gradlew ==="
+        head -5 gradlew
+        echo "=== gradle-wrapper.properties ==="
+        cat gradle/wrapper/gradle-wrapper.properties
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace --info
+      run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
-    - name: Build Release APK (Unsigned)
-      run: ./gradlew assembleRelease --no-daemon --stacktrace --info
+    - name: Upload build log on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log
+        path: build.log
 
-    - name: List APK files
-      run: find app/build/outputs/apk -name "*.apk" || echo "No APK found"
+    - name: Find APK files
+      if: always()
+      run: find app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
 
-    - name: Upload Debug APK Artifact
+    - name: Upload Debug APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: faceup-debug-apk
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
-        if-no-files-found: warn
 
-    - name: Upload Release APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: faceup-release-apk
-        path: app/build/outputs/apk/release/*.apk
-        retention-days: 30
-        if-no-files-found: warn
-
-  create-release:
+  release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: success() && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     
     permissions:
       contents: write
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download Debug APK
+    - name: Download APK
       uses: actions/download-artifact@v4
       with:
         name: faceup-debug-apk
-        path: ./artifacts/debug
-        merge-multiple: true
+        path: ./apk
 
-    - name: Download Release APK
-      uses: actions/download-artifact@v4
-      with:
-        name: faceup-release-apk
-        path: ./artifacts/release
-        merge-multiple: true
-
-    - name: List downloaded files
-      run: ls -la ./artifacts/debug ./artifacts/release || echo "Files not found"
-
-    - name: Get current date
+    - name: Get date
       id: date
       run: echo "date=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
 
@@ -102,27 +90,10 @@ jobs:
         name: FaceUp v1.0.0 - Build ${{ steps.date.outputs.date }}
         body: |
           ## FaceUp Video Calling App
-          
-          ### Build Information
-          - **Version:** 1.0.0
-          - **Build Date:** ${{ steps.date.outputs.date }}
-          - **Commit:** ${{ github.sha }}
-          - **Branch:** ${{ github.ref_name }}
-          
-          ### Included Files
-          - `faceup-debug.apk` - Debug build (signed with debug key)
-          - `faceup-release.apk` - Release build (unsigned)
-          
-          ### Installation Instructions
-          1. Download the APK file of your choice
-          2. On your Android device, enable "Install from unknown sources"
-          3. Transfer the APK to your device or download directly
-          4. Open the APK file to install
-        files: |
-          ./artifacts/debug/*
-          ./artifacts/release/*
+          **Version:** 1.0.0
+          **Build Date:** ${{ steps.date.outputs.date }}
+        files: ./apk/*.apk
         draft: false
         prerelease: false
-        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
