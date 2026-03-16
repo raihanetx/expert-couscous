@@ -15,7 +15,7 @@ val Typography = Typography(
     ),
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         color = TextPrimary
     ),

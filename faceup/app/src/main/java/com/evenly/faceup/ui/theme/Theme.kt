@@ -1,42 +1,48 @@
 package com.evenly.faceup.ui.theme
 
-import android.app.Activity
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+
+// Primary Colors
+val Primary = Color(0xFF6366F1)
+val PrimaryDark = Color(0xFF4F46E5)
+val PrimaryLight = Color(0xFF818CF8)
+
+// Secondary
+val Secondary = Color(0xFFEC4899)
+
+// Background
+val Background = Color(0xFF0F172A)
+val Surface = Color(0xFF1E293B)
+
+// Text
+val TextPrimary = Color(0xFFF8FAFC)
+val TextSecondary = Color(0xFF94A3B8)
+
+// Status
+val Success = Color(0xFF22C55E)
+val Error = Color(0xFFEF4444)
+val Online = Color(0xFF22C55E)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
-    onPrimary = TextPrimary,
-    primaryContainer = PrimaryDark,
     secondary = Secondary,
-    onSecondary = TextPrimary,
+    tertiary = PrimaryLight,
     background = Background,
-    onBackground = TextPrimary,
     surface = Surface,
-    onSurface = TextPrimary,
-    error = Error,
-    onError = TextPrimary
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = TextPrimary,
+    onSurface = TextPrimary
 )
 
 @Composable
 fun FaceUpTheme(content: @Composable () -> Unit) {
-    val colorScheme = DarkColorScheme
-    val view = LocalView.current
-    
-    SideEffect {
-        val window = (view.context as Activity).window
-        window.statusBarColor = Background.toArgb()
-        window.navigationBarColor = Background.toArgb()
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = DarkColorScheme,
         typography = Typography,
         content = content
     )

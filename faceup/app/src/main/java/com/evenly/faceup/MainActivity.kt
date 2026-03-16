@@ -4,12 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
-import com.evenly.faceup.ui.navigation.NavGraph
+import androidx.compose.ui.graphics.Color
 import com.evenly.faceup.ui.theme.FaceUpTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,8 +20,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    NavGraph(navController = navController)
+                    Text("FaceUp - Video Calling App")
                 }
             }
         }
