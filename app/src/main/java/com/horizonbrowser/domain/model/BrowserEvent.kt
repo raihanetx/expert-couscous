@@ -1,0 +1,26 @@
+package com.horizonbrowser.domain.model
+
+sealed class BrowserEvent {
+    data class LoadUrl(val url: String) : BrowserEvent()
+    data class Search(val query: String) : BrowserEvent()
+    object GoBack : BrowserEvent()
+    object GoForward : BrowserEvent()
+    object Refresh : BrowserEvent()
+    object AddNewTab : BrowserEvent()
+    data class SwitchTab(val tabId: String) : BrowserEvent()
+    data class CloseTab(val tabId: String) : BrowserEvent()
+    data class SetZoom(val zoomLevel: Int) : BrowserEvent()
+    data class ToggleDesktopMode(val tabId: String) : BrowserEvent()
+    data class SetCookieMode(val mode: CookieMode) : BrowserEvent()
+    data class BlockDomain(val domain: String) : BrowserEvent()
+    data class UnblockDomain(val domain: String) : BrowserEvent()
+    object ExportBlockedDomains : BrowserEvent()
+    data class AddToFavorites(val url: String, val title: String) : BrowserEvent()
+    data class RemoveFromFavorites(val url: String) : BrowserEvent()
+    data class UpdateTabUrl(val tabId: String, val url: String, val title: String) : BrowserEvent()
+    object ToggleSearchOverlay : BrowserEvent()
+    object ToggleTabsOverlay : BrowserEvent()
+    object ToggleMenuSheet : BrowserEvent()
+    object ToggleCookieManager : BrowserEvent()
+    object ClearHistory : BrowserEvent()
+}
